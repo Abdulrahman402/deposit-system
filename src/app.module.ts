@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PostgresModule } from './postgres/postgres.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -11,6 +12,6 @@ import { PostgresModule } from './postgres/postgres.module';
     PostgresModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [JwtService],
 })
 export class AppModule {}
