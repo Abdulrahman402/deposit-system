@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PostgresModule } from './postgres/postgres.module';
 import { JwtService } from '@nestjs/jwt';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
       envFilePath: '.env',
     }),
     PostgresModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [JwtService],
