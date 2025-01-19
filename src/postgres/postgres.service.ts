@@ -10,7 +10,7 @@ export class PostgresService implements OnModuleInit, OnModuleDestroy {
     this.pool = new Pool({
       user: this.config.get('POSTGRES_USER'),
       host: this.config.get('POSTGRES_HOST'),
-      database: 'postgres',
+      database: this.config.get('POSTGRES_DB') || 'deposit-system',
       password: this.config.get('POSTGRES_PASSWORD'),
       port: Number(this.config.get('POSTGRES_PORT')),
     });

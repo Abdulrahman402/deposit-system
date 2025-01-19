@@ -49,24 +49,31 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const { username, password } = dto;
+    try {
+      const { username, password } = dto;
 
-    const user = await this.postgresService.query(
-      `SELECT * FROM users WHERE username = $1;`,
-      [username],
-    );
+      const user = await this.postgresService.query(
+        `SELECT * FROM users WHERE username = $1;`,
+        [username],
+      );
 
-    if (user.length == 0)
-      throw new CustomException('Invalid username or password');
+      if (user.length == 0)
+        throw new CustomException('Invalid username or password');
 
-    if (!this.validatePassword(user[0].password, password))
-      throw new CustomException('Invalid email or password');
-    return {
-      access_token: await this.signToken({
-        id: user[0].id,
-      }),
-      user: omit(['password', 'created_at'], user[0]),
-    };
+      if (!this.validatePassword(user[0].password, password))
+        throw new CustomException('Invalid email or password');
+      return {
+        access_token: await this.signToken({
+          id: user[0].id,
+        }),
+        user: omit(['password', 'created_at'], user[0]),
+      };
+    } catch (e) {
+      console.error(e);
+      if (e instanceof CustomException) throw e;
+
+      throw new CustomException('Failed to login');
+    }
   }
 
   hashPassword(password: string): string {
