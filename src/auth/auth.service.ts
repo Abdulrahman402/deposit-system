@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { randomBytes, pbkdf2Sync } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto, SignupDto } from './auth.dto';
@@ -6,6 +6,8 @@ import { CustomException } from '../common/filter/custom-exception.filter';
 import { omit } from 'ramda';
 import { ConfigService } from '@nestjs/config';
 import { PostgresService } from 'src/postgres/postgres.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +15,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly postgresService: PostgresService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -52,21 +55,18 @@ export class AuthService {
     try {
       const { username, password } = dto;
 
-      const user = await this.postgresService.query(
-        `SELECT * FROM users WHERE username = $1;`,
-        [username],
-      );
+      const user = await this.isUserExists(username);
 
-      if (user.length == 0)
-        throw new CustomException('Invalid username or password');
-
-      if (!this.validatePassword(user[0].password, password))
+      if (!this.validatePassword(user.password, password))
         throw new CustomException('Invalid email or password');
+
+      this.cacheManager.set(username, user);
+
       return {
         access_token: await this.signToken({
-          id: user[0].id,
+          id: user.id,
         }),
-        user: omit(['password', 'created_at'], user[0]),
+        user: omit(['password', 'created_at'], user),
       };
     } catch (e) {
       console.error(e);
@@ -107,5 +107,34 @@ export class AuthService {
     const secret = this.config.get('JWT_SECRET');
 
     return this.jwt.signAsync(payload, { secret });
+  }
+
+  async getCachedUser(username: string): Promise<any> {
+    try {
+      return await this.cacheManager.get(username);
+    } catch (error) {
+      console.error('Cache error:', error);
+      return null;
+    }
+  }
+
+  async isUserExists(username) {
+    try {
+      let user = await this.getCachedUser(username);
+      if (!user) {
+        user = await this.postgresService.query(
+          `SELECT * FROM users WHERE username = $1;`,
+          [username],
+        );
+        user = user[0];
+      }
+
+      if (!user) throw new CustomException('Invalid username or password');
+
+      return user;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }
 }
