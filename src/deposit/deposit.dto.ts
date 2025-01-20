@@ -3,7 +3,7 @@ import { IsDecimal, IsInt, IsNotEmpty } from 'class-validator';
 export class DepositDto {
   @IsDecimal()
   @IsNotEmpty()
-  amount: number;
+  amount: string;
 
   @IsInt()
   @IsNotEmpty()
